@@ -381,9 +381,11 @@ export default function AccessibilityMode() {
 
                 <div className="text-center space-y-2">
                   <p className={`text-lg font-medium ${dyslexiaFont ? "dyslexia-friendly" : ""}`}>¿Necesitas ayuda?</p>
-                  <Button variant="link" className="text-blue-600 text-lg">
-                    Contactar Soporte
-                  </Button>
+                  <a href="./contact-us">
+                    <Button variant="link" className="text-blue-600 text-lg">
+                      Contactar Soporte
+                    </Button>
+                  </a>
                 </div>
               </CardContent>
             </Card>
