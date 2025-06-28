@@ -17,6 +17,7 @@ interface AccessibilityState {
 interface AccessibilityContextProps {
   accessibility: AccessibilityState
   setAccessibility: (newState: Partial<AccessibilityState>) => void
+  resetAccessibility: () => void
 }
 
 const DEFAULT_STATE: AccessibilityState = {
@@ -54,8 +55,12 @@ export const AccessibilityProvider = ({ children }: { children: ReactNode }) => 
     setAccessibilityState((prev) => ({ ...prev, ...newState }))
   }
 
+  const resetAccessibility = () => {
+  setAccessibilityState(DEFAULT_STATE)
+}
+
   return (
-    <AccessibilityContext.Provider value={{ accessibility, setAccessibility }}>
+    <AccessibilityContext.Provider value={{ accessibility, setAccessibility, resetAccessibility }}>
       {children}
     </AccessibilityContext.Provider>
   )
