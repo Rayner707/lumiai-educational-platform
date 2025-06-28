@@ -92,3 +92,17 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+/* Fuente accesible para dislexia */
+.font-lexend {
+  font-family: 'Lexend', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: 0.05em;
+  line-height: 1.6;
+}
+
+/* Estilo adicional para mejorar legibilidad */
+.dyslexia-friendly {
+  font-weight: 500;
+  word-spacing: 0.2em;
+  line-height: 1.8;
+}
