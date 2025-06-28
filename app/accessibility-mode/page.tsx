@@ -27,7 +27,7 @@ import {
 } from "lucide-react"
 
 export default function AccessibilityMode() {
-  const { accessibility, setAccessibility } = useAccessibility()
+  const { accessibility, setAccessibility, resetAccessibility } = useAccessibility()
   const dyslexiaFont = accessibility.dyslexiaFont
   const textToSpeech = accessibility.textToSpeech
   const signLanguage = accessibility.signLanguage
@@ -58,6 +58,14 @@ export default function AccessibilityMode() {
     toast({
         title: "Configuración guardada",
         description: "Tus preferencias de accesibilidad han sido almacenadas correctamente.",
+    })
+  }
+
+  const handleReset = () => {
+    resetAccessibility()
+    toast({
+        title: "Configuración restablecida",
+        description: "Tus preferencias de accesibilidad han sido devueltas a su estado original.",
     })
   }
 
@@ -350,9 +358,14 @@ export default function AccessibilityMode() {
                 <CardDescription className="text-lg">Controles rápidos para una mejor experiencia</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <Button variant="outline" size="lg" className="w-full rounded-full text-lg py-6 bg-transparent">
-                  <RotateCcw className="h-5 w-5 mr-2" />
-                  Restablecer Configuración
+                <Button
+                    onClick={handleReset}
+                    variant="outline"
+                    size="lg"
+                    className="w-full rounded-full text-lg py-6 bg-transparent"
+                    >
+                    <RotateCcw className="h-5 w-5 mr-2" />
+                    Restablecer Configuración
                 </Button>
 
                 <Button variant="outline" size="lg" className="w-full rounded-full text-lg py-6 bg-transparent">
