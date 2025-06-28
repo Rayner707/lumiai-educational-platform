@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import { Separator } from "@/components/ui/separator"
+import { useRouter } from "next/navigation"
 import { Badge } from "@/components/ui/badge"
 import {
   ArrowLeft,
@@ -68,6 +69,8 @@ export default function AccessibilityMode() {
         description: "Tus preferencias de accesibilidad han sido devueltas a su estado original.",
     })
   }
+
+  const router = useRouter()
 
   return (
     <div
@@ -134,10 +137,11 @@ export default function AccessibilityMode() {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <Button
+            onClick={() => router.back()}
             variant="outline"
             size="lg"
             className="rounded-full bg-white/80 backdrop-blur-sm border-2 hover:bg-white"
-          >
+            >
             <ArrowLeft className="h-5 w-5 mr-2" />
             <span className="text-lg font-semibold">Volver</span>
           </Button>
