@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
+import { useToast } from "@/hooks/use-toast"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -51,6 +52,14 @@ export default function AccessibilityMode() {
   }
 
   const fontClass = dyslexiaFont ? "font-lexend" : "font-sans"
+  const { toast } = useToast()
+
+  const handleSave = () => {
+    toast({
+        title: "Configuración guardada",
+        description: "Tus preferencias de accesibilidad han sido almacenadas correctamente.",
+    })
+  }
 
   return (
     <div
@@ -367,6 +376,7 @@ export default function AccessibilityMode() {
         {/* Bottom Action */}
         <div className="mt-12 text-center">
           <Button
+            onClick={handleSave}
             size="lg"
             className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white rounded-full px-12 py-4 text-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
           >

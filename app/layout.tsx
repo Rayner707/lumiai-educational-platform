@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { AccessibilityProvider } from "@/components/context/accessibility-context"
+import { Toaster } from "@/components/ui/toaster"
 
 export const metadata: Metadata = {
   title: "LumiAI - Plataforma Educativa Inteligente",
@@ -23,6 +24,7 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
           <AccessibilityProvider>
             {children}
+            <Toaster />
           </AccessibilityProvider>
         </ThemeProvider>
       </body>
