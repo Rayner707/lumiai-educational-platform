@@ -439,7 +439,16 @@ export default function LumiAI() {
                   <Target className="h-5 w-5 mr-2 text-green-600" />
                   Cuestionarios Generados por IA
                 </CardTitle>
-                <CardDescription>Practica con preguntas personalizadas</CardDescription>
+                <div className="flex items-center justify-between">
+                  <CardDescription>Practica con preguntas personalizadas</CardDescription>
+                  <Button
+                    variant="outline"
+                    className="rounded-full"
+                  >
+                    <a href="./quiz-results">Ver anteriores</a>
+                  </Button>
+                </div>
+
               </CardHeader>
               <CardContent>
                 <div className="grid gap-6">
@@ -520,7 +529,7 @@ export default function LumiAI() {
                 </div>
 
                 <Button className="w-full rounded-full bg-transparent" variant="outline">
-                  Ver Progreso Completo
+                  <a href="./student-progress">Ver Progreso Completo</a>
                 </Button>
               </CardContent>
             </Card>
