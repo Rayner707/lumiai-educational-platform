@@ -471,7 +471,7 @@ export default function LumiAI() {
                 </div>
 
                 <Button className="w-full rounded-full bg-transparent" variant="outline">
-                  Ver Progreso Completo
+                  <a href="./student-progress">Ver Progreso Completo</a>
                 </Button>
               </CardContent>
             </Card>
