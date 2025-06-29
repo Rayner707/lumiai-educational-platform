@@ -84,22 +84,7 @@ export default function LumiAI() {
   const user = useCurrentUser()
   
 
-  const [quizzes] = useState<Quiz[]>([
-    {
-      id: "1",
-      question: "¿Cuál es la fórmula del área de un círculo?",
-      options: ["πr²", "2πr", "πd", "r²"],
-      correctAnswer: 0,
-      isAnswered: false,
-    },
-    {
-      id: "2",
-      question: "¿Qué elemento químico tiene el símbolo 'O'?",
-      options: ["Oro", "Oxígeno", "Osmio", "Óxido"],
-      correctAnswer: 1,
-      isAnswered: false,
-    },
-  ])
+  const [quizzes, setQuizzes] = useState<Quiz[]>([])
 
   const subjects = [
     "Matemáticas",
@@ -143,6 +128,96 @@ export default function LumiAI() {
   function extractYouTubeUrls(text: string): string[] {
     const regex = /https?:\/\/(www\.)?(youtube\.com|youtu\.be)\/[^\s)]+/g
     return text.match(regex) || []
+  }
+
+  const handleGenerateQuiz = async () => {
+    setIsLoading(true)
+
+    try {
+      const firestoreSubject = normalizeSubject(selectedSubject)
+      const firestoreGrade = normalizeGrade(selectedGrade)
+
+      const booksQuery = query(
+        collection(db, "books"),
+        where("grade", "==", firestoreGrade),
+        where("subject", "==", firestoreSubject)
+      )
+      const snapshot = await getDocs(booksQuery)
+      const context = snapshot.docs
+        .map((doc) => {
+          const data = doc.data() as any
+          return data.activities.map((a: any) => `${a.title}: ${a.text}`).join("\n")
+        })
+        .join("\n")
+
+      const lastTopic = messages
+        .filter((msg) => msg.isUser)
+        .slice(-2)
+        .map((msg) => msg.content)
+        .join(" ")
+
+      const prompt = `
+Tu tarea es generar 3 preguntas de opción múltiple sobre el tema: "${lastTopic}".
+Materia: ${selectedSubject}
+Grado: ${selectedGrade}
+
+Formato JSON estricto, sin ningún texto adicional:
+[
+  {
+    "question": "¿Cuál es la capital de Bolivia?",
+    "options": ["La Paz", "Santa Cruz", "Cochabamba", "Sucre"],
+    "correctAnswer": 0
+  },
+  {
+    "question": "¿Cuál es el resultado de 2 + 3?",
+    "options": ["4", "5", "6", "7"],
+    "correctAnswer": 1
+  },
+  {
+    "question": "¿Qué forma tiene una pelota?",
+    "options": ["Cuadrada", "Triangular", "Ovalada", "Redonda"],
+    "correctAnswer": 3
+  }
+]
+
+Genera preguntas reales sobre el tema y asegúrate de seguir el formato estrictamente. No escribas texto introductorio ni explicación.
+`
+
+      const result = await model.generateContent(prompt)
+      const raw = await result.response.text()
+      const cleanRaw = raw.replace(/^```json|```$/g, "").trim()
+      console.log("🧪 Quiz generado (clean):", cleanRaw)
+
+      try {
+        const parsed = JSON.parse(cleanRaw)
+
+        const validated = parsed.filter((q: any) =>
+          typeof q.question === "string" &&
+          Array.isArray(q.options) &&
+          typeof q.correctAnswer === "number"
+        ).map((q: any, i: number): Quiz => ({
+          id: Date.now().toString() + i,
+          question: q.question,
+          options: q.options,
+          correctAnswer: q.correctAnswer,
+          isAnswered: false,
+        }))
+
+        if (validated.length > 0) {
+          setQuizzes(validated)
+        } else {
+          alert("No se pudo generar el cuestionario. Intenta de nuevo.")
+        }
+      } catch (e) {
+        console.error("❌ Error parsing quiz:", e)
+        alert("Ocurrió un error al generar el cuestionario.")
+      }
+    } catch (err) {
+      console.error("Error generando quiz:", err)
+      alert("Ocurrió un error al generar el cuestionario.")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleSendMessage = async () => {
@@ -555,6 +630,13 @@ export default function LumiAI() {
                 </CardTitle>
                 <div className="flex items-center justify-between">
                   <CardDescription>Practica con preguntas personalizadas</CardDescription>
+                  <Button
+                    variant="default"
+                    className="mt-2"
+                    onClick={handleGenerateQuiz}
+                  >
+                    Generar preguntas para practicar
+                  </Button>
                   <Button
                     variant="outline"
                     className="rounded-full"
