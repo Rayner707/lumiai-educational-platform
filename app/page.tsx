@@ -7,6 +7,11 @@ import { useRouter } from "next/navigation"
 import { signOutUser } from "@/lib/firebase-auth"
 import { useCurrentUser } from "@/hooks/use-current-user"
 import { useAccessibility } from "@/components/context/accessibility-context"
+import ReactMarkdown from "react-markdown"
+import { model } from "@/lib/gemini"
+import { collection, getDocs } from "firebase/firestore"
+import { db } from "@/lib/firebase"
+import { query, where } from "firebase/firestore"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -59,6 +64,7 @@ interface Quiz {
 }
 
 export default function LumiAI() {
+  const [isLoading, setIsLoading] = useState(false)
   const [darkMode, setDarkMode] = useState(false)
   const [selectedSubject, setSelectedSubject] = useState("")
   const [selectedGrade, setSelectedGrade] = useState("")
@@ -76,6 +82,7 @@ export default function LumiAI() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const router = useRouter()
   const user = useCurrentUser()
+  
 
   const [quizzes] = useState<Quiz[]>([
     {
@@ -107,30 +114,107 @@ export default function LumiAI() {
 
   const grades = Array.from({ length: 12 }, (_, i) => `${i + 1}° Grado`)
 
-  const handleSendMessage = () => {
-    if (!chatInput.trim()) return
+  const normalizeSubject = (uiValue: string) => {
+    const map: Record<string, string> = {
+      "Matemáticas": "matematica",
+      "Ciencias Naturales": "ciencias",
+      "Lenguaje": "lenguaje",
+      "Historia": "historia",
+      "Geografía": "geografia",
+      "Inglés": "ingles",
+      "Educación Física": "educacion-fisica",
+      "Arte": "arte",
+    }
+    return map[uiValue] ?? uiValue.toLowerCase()
+  }
 
-    const newMessage: Message = {
+  const normalizeGrade = (uiValue: string) => {
+    const match = uiValue.match(/^(\d+)/)
+    if (!match) return uiValue.toLowerCase()
+    const number = parseInt(match[1])
+    const grades = [
+      "primero", "segundo", "tercero", "cuarto",
+      "quinto", "sexto", "séptimo", "octavo",
+      "noveno", "décimo", "undécimo", "duodécimo",
+    ]
+    return grades[number - 1] ?? uiValue.toLowerCase()
+  }
+
+  function extractYouTubeUrls(text: string): string[] {
+    const regex = /https?:\/\/(www\.)?(youtube\.com|youtu\.be)\/[^\s)]+/g
+    return text.match(regex) || []
+  }
+
+  const handleSendMessage = async () => {
+  if (!chatInput.trim()) return
+
+  const newMessage: Message = {
+    id: Date.now().toString(),
+    content: chatInput,
+    isUser: true,
+    timestamp: new Date(),
+  }
+
+  setMessages((prev) => [...prev, newMessage])
+  setChatInput("")
+  setIsLoading(true)
+
+  try {
+    const firestoreSubject = normalizeSubject(selectedSubject)
+    const firestoreGrade = normalizeGrade(selectedGrade)
+
+    const booksQuery = query(
+      collection(db, "books"),
+      where("grade", "==", firestoreGrade),
+      where("subject", "==", firestoreSubject)
+    )
+    const snapshot = await getDocs(booksQuery)
+    const context = snapshot.docs
+      .map((doc) => {
+        const data = doc.data() as any
+        return data.activities.map((a: any) => {
+          return `Actividad: ${a.title}
+        Descripción: ${a.text}
+        Video: ${a.videoUrl ?? "No disponible"}`
+        }).join("\n\n")
+      })
+      .join("\n")
+
+    const prompt = `
+    Pregunta: "${chatInput}"
+    Información educativa relevante:
+    ${context}
+
+    Responde de forma clara, amigable y didáctica como si hablaras con un estudiante boliviano.
+    `
+
+    const result = await model.generateContent(prompt)
+    const responseText = result.response.text()
+
+    const aiResponse: Message = {
       id: Date.now().toString(),
-      content: chatInput,
-      isUser: true,
+      content: responseText,
+      isUser: false,
       timestamp: new Date(),
     }
 
-    setMessages((prev) => [...prev, newMessage])
-    setChatInput("")
-
-    // Simulate AI response
-    setTimeout(() => {
-      const aiResponse: Message = {
-        id: (Date.now() + 1).toString(),
-        content: `Entiendo tu pregunta sobre "${chatInput}". Basándome en el contenido de ${selectedSubject || "tu materia"} para ${selectedGrade || "tu grado"}, te puedo ayudar con una explicación detallada. ¿Te gustaría que profundice en algún aspecto específico?`,
-        isUser: false,
-        timestamp: new Date(),
-      }
       setMessages((prev) => [...prev, aiResponse])
-    }, 1000)
+    } catch (err) {
+      console.error("Error con Gemini:", err)
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now().toString(),
+          content: "Lo siento, hubo un problema al generar la respuesta.",
+          isUser: false,
+          timestamp: new Date(),
+        },
+      ])
+    } finally {
+      setIsLoading(false)
+    }
   }
+
 
   const handleQuizAnswer = (quizId: string, answerIndex: number) => {
     // In a real app, this would update the quiz state
@@ -410,11 +494,41 @@ export default function LumiAI() {
                               : "bg-white dark:bg-gray-800 text-gray-900 dark:text-white border"
                           }`}
                         >
-                          <p className="text-sm">{message.content}</p>
+                          <div className="prose prose-sm max-w-none dark:prose-invert space-y-2">
+                            <ReactMarkdown>{message.content}</ReactMarkdown>
+
+                            {/* Si hay un video de YouTube, mostrarlo embebido */}
+                            {extractYouTubeUrls(message.content).map((url, i) => {
+                              const videoId = url.includes("watch?v=")
+                                ? url.split("watch?v=")[1]
+                                : url.split("/").pop()
+                              return (
+                                <div key={i} className="w-full aspect-video">
+                                  <iframe
+                                    width="560"
+                                    height="315"
+                                    src={`https://www.youtube.com/embed/${videoId}`}
+                                    title="YouTube video player"
+                                    frameBorder="0"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                    allowFullScreen
+                                    className="w-full h-full rounded-lg"
+                                  />
+                                </div>
+                              )
+                            })}
+                          </div>
                           <p className="text-xs opacity-70 mt-1">{message.timestamp.toLocaleTimeString()}</p>
                         </div>
                       </div>
                     ))}
+                    {isLoading && (
+                      <div className="flex justify-start">
+                        <div className="max-w-xs lg:max-w-md px-4 py-2 rounded-2xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white border animate-pulse">
+                          <p className="text-sm italic">Pensando una respuesta…</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </ScrollArea>
                 <div className="flex space-x-2">
