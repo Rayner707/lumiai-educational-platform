@@ -4,6 +4,8 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useRouter } from "next/navigation"
+import { signOutUser } from "@/lib/firebase-auth"
+import { useCurrentUser } from "@/hooks/use-current-user"
 import { useAccessibility } from "@/components/context/accessibility-context"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -73,6 +75,7 @@ export default function LumiAI() {
   const [showProgress, setShowProgress] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const router = useRouter()
+  const user = useCurrentUser()
 
   const [quizzes] = useState<Quiz[]>([
     {
@@ -161,10 +164,30 @@ export default function LumiAI() {
               <Button variant="ghost" size="icon" onClick={toggleDarkMode} className="rounded-full">
                 {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
               </Button>
-              <Button variant="outline" className="rounded-full bg-transparent">
-                <User className="h-4 w-4 mr-2" />
-                Iniciar Sesión
-              </Button>
+              {user ? (
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">
+                    ¡Hola, {user.displayName?.split(" ")[0]}!
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={signOutUser}
+                    className="text-xs text-red-600 dark:text-red-400 px-2"
+                  >
+                    Cerrar sesión
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  variant="outline"
+                  className="rounded-full bg-transparent"
+                  onClick={() => router.push("/login")}
+                >
+                  <User className="h-4 w-4 mr-2" />
+                  Iniciar Sesión
+                </Button>
+              )}
             </div>
 
             {/* Mobile Menu Button */}
@@ -183,10 +206,36 @@ export default function LumiAI() {
                   {darkMode ? <Sun className="h-4 w-4 mr-2" /> : <Moon className="h-4 w-4 mr-2" />}
                   {darkMode ? "Modo Claro" : "Modo Oscuro"}
                 </Button>
-                <Button variant="outline" className="justify-start bg-transparent">
-                  <User className="h-4 w-4 mr-2" />
-                  Iniciar Sesión
-                </Button>
+                {user ? (
+                  <div className="flex flex-col space-y-1 px-4">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      ¡Hola, {user.displayName?.split(" ")[0]}!
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="justify-start text-red-600 dark:text-red-400 px-0"
+                      onClick={() => {
+                        setMobileMenuOpen(false)
+                        signOutUser()
+                      }}
+                    >
+                      Cerrar sesión
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    variant="outline"
+                    className="justify-start bg-transparent"
+                    onClick={() => {
+                      setMobileMenuOpen(false)
+                      router.push("/login")
+                    }}
+                  >
+                    <User className="h-4 w-4 mr-2" />
+                    Iniciar Sesión
+                  </Button>
+                )}
               </div>
             </div>
           )}
